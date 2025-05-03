@@ -42,3 +42,19 @@ export const calculatePercentage = (current: number, target: number): number => 
   if (target === 0) return 0;
   return Math.min(Math.round((current / target) * 100), 100);
 };
+
+// Format a month (YYYY-MM) to a short month name
+export const formatMonthShort = (yearMonth: string): string => {
+  const [year, month] = yearMonth.split('-');
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  return date.toLocaleString('pt-BR', { month: 'short' });
+};
+
+// Format a number as compact currency
+export const formatCompactCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    notation: 'compact',
+    compactDisplay: 'short',
+    currency: 'BRL'
+  }).format(value);
+};

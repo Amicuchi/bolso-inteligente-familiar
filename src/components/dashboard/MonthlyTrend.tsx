@@ -16,6 +16,13 @@ interface ChartData {
 }
 
 const MonthlyTrend: React.FC<MonthlyTrendProps> = ({ transactions }) => {
+  // Format YYYY-MM to MMM
+  const formatMonth = (yearMonth: string): string => {
+    const [year, month] = yearMonth.split('-');
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    return date.toLocaleString('pt-BR', { month: 'short' });
+  };
+  
   const chartData = useMemo(() => {
     // Group transactions by month
     const monthlyData = new Map<string, { income: number; expense: number; balance: number }>();
@@ -54,13 +61,6 @@ const MonthlyTrend: React.FC<MonthlyTrendProps> = ({ transactions }) => {
         balance: data.balance
       }));
   }, [transactions]);
-  
-  // Format YYYY-MM to MMM
-  const formatMonth = (yearMonth: string): string => {
-    const [year, month] = yearMonth.split('-');
-    const date = new Date(Number(year), Number(month) - 1, 1);
-    return date.toLocaleString('pt-BR', { month: 'short' });
-  };
 
   return (
     <Card>
