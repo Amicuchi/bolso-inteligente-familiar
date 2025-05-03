@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ChartPie, Coins, CreditCard, DollarSign, Home, PiggyBank, TrendingUp } from 'lucide-react';
 
@@ -55,11 +56,12 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ href, icon, label }) => {
-  const isActive = window.location.pathname === href;
+  const location = useLocation();
+  const isActive = location.pathname === href;
   
   return (
-    <a 
-      href={href} 
+    <Link 
+      to={href} 
       className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
         isActive 
           ? "bg-primary text-primary-foreground" 
@@ -68,7 +70,7 @@ const NavItem: React.FC<NavItemProps> = ({ href, icon, label }) => {
     >
       <span className="mr-3">{icon}</span>
       {label}
-    </a>
+    </Link>
   );
 };
 
