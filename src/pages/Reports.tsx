@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -452,8 +451,8 @@ const ReportsPage = () => {
           {/* New tab: Category Comparison */}
           <TabsContent value="comparison" className="space-y-4">
             <ExpenseCategoryComparison 
-              currentPeriodTransactions={filteredTransactions}
-              previousPeriodTransactions={previousTransactions}
+              expensesCurrentPeriod={filteredTransactions.filter(t => t.type === 'expense')}
+              expensesPreviousPeriod={previousTransactions.filter(t => t.type === 'expense')}
               currentPeriodLabel={formatMonthShort(selectedPeriod)}
               previousPeriodLabel={formatMonthShort(previousPeriod)}
             />
