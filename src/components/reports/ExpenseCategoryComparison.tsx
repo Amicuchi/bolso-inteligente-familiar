@@ -1,111 +1,112 @@
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartLegend } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { useFinance, Transaction, CategoryType } from '@/context/FinanceContext';
+import { getCategoryColor, getCategoryName } from '@/utils/categoryUtils';
 import { formatCurrency } from '@/utils/format';
-import { Transaction, CategoryType } from '@/context/FinanceContext';
-import { getCategoryName } from '@/utils/categoryUtils';
 
 interface ExpenseCategoryComparisonProps {
-  currentPeriodTransactions: Transaction[];
-  previousPeriodTransactions: Transaction[];
-  currentPeriodLabel: string;
-  previousPeriodLabel: string;
+  transactions: Transaction[];
+  period: string;
 }
 
-const ExpenseCategoryComparison: React.FC<ExpenseCategoryComparisonProps> = ({
-  currentPeriodTransactions,
-  previousPeriodTransactions,
-  currentPeriodLabel,
-  previousPeriodLabel
+interface CategoryData {
+  name: string;
+  value: number;
+  color: string;
+  category: CategoryType;
+}
+
+const ExpenseCategoryComparison: React.FC<ExpenseCategoryComparisonProps> = ({ 
+  transactions,
+  period 
 }) => {
-  const comparisonData = useMemo(() => {
-    // Get categories from both periods
-    const allCategories = new Set<CategoryType>();
+  // Calculate data for the pie chart
+  const categoryData = useMemo(() => {
+    // Filter transactions to only include expenses
+    const expenses = transactions.filter(t => t.type === 'expense');
     
-    currentPeriodTransactions.forEach(transaction => {
-      if (transaction.type === 'expense') {
-        allCategories.add(transaction.category);
+    // Group by category
+    const categoryGroups: Record<string, number> = {};
+    expenses.forEach(expense => {
+      const category = expense.category;
+      if (!categoryGroups[category]) {
+        categoryGroups[category] = 0;
       }
+      categoryGroups[category] += expense.amount;
     });
     
-    previousPeriodTransactions.forEach(transaction => {
-      if (transaction.type === 'expense') {
-        allCategories.add(transaction.category);
-      }
-    });
+    // Convert to array format for chart
+    const data: CategoryData[] = Object.keys(categoryGroups).map(category => ({
+      name: getCategoryName(category as CategoryType),
+      value: categoryGroups[category],
+      color: getCategoryColor(category as CategoryType),
+      category: category as CategoryType,
+    }));
     
-    // Calculate totals for each category in both periods
-    const result = Array.from(allCategories).map(category => {
-      const currentTotal = currentPeriodTransactions
-        .filter(t => t.type === 'expense' && t.category === category)
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const previousTotal = previousPeriodTransactions
-        .filter(t => t.type === 'expense' && t.category === category)
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const percentChange = previousTotal > 0 
-        ? ((currentTotal - previousTotal) / previousTotal) * 100 
-        : currentTotal > 0 ? 100 : 0;
-        
-      return {
-        category,
-        categoryName: getCategoryName(category),
-        [currentPeriodLabel]: currentTotal,
-        [previousPeriodLabel]: previousTotal,
-        percentChange: Math.round(percentChange)
-      };
-    });
-    
-    // Sort by current period value
-    return result.sort((a, b) => b[currentPeriodLabel] - a[currentPeriodLabel]).slice(0, 8);
-  }, [currentPeriodTransactions, previousPeriodTransactions, currentPeriodLabel, previousPeriodLabel]);
+    // Sort by value (highest first)
+    return data.sort((a, b) => b.value - a.value);
+  }, [transactions]);
+  
+  // Calculate total expenses
+  const totalExpenses = useMemo(() => 
+    categoryData.reduce((sum, category) => sum + category.value, 0), 
+    [categoryData]
+  );
+  
+  // Custom tooltip for the pie chart
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const percentage = ((data.value / totalExpenses) * 100).toFixed(1);
+      
+      return (
+        <div className="bg-background border rounded p-2 shadow-md">
+          <p className="font-medium">{data.name}</p>
+          <p className="text-sm">{formatCurrency(data.value)}</p>
+          <p className="text-xs text-muted-foreground">{percentage}% do total</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comparativo de Categorias de Despesas</CardTitle>
+        <CardTitle>Comparação de Categorias de Despesas</CardTitle>
       </CardHeader>
-      <CardContent className="h-[400px]">
-        <ChartContainer
-          config={{
-            [currentPeriodLabel]: { color: "#EF4444" },
-            [previousPeriodLabel]: { color: "#94A3B8" }
-          }}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={comparisonData}
-              layout="vertical"
-              margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-              <XAxis 
-                type="number" 
-                tickFormatter={(value) => 
-                  new Intl.NumberFormat('pt-BR', {
-                    notation: 'compact',
-                    compactDisplay: 'short',
-                  }).format(value)
-                }
-              />
-              <YAxis 
-                type="category" 
-                dataKey="categoryName" 
-                width={90}
-              />
-              <Tooltip
-                formatter={(value: number) => [formatCurrency(value), "Valor"]}
-                labelFormatter={(label) => `Categoria: ${label}`}
-              />
-              <ChartLegend />
-              <Bar dataKey={previousPeriodLabel} name={previousPeriodLabel} fill="var(--color-previousPeriodLabel)" />
-              <Bar dataKey={currentPeriodLabel} name={currentPeriodLabel} fill="var(--color-currentPeriodLabel)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+      <CardContent>
+        {totalExpenses > 0 ? (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-80">
+            <p className="text-muted-foreground">
+              Não há despesas registradas para este período.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
