@@ -3,6 +3,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatMonthShort } from '@/utils/format';
+import HelpTooltip from '@/components/ui/help-tooltip';
 
 interface MonthSelectorProps {
   selectedPeriod: string; // formato YYYY-MM
@@ -41,8 +42,9 @@ const MonthSelector: React.FC<MonthSelectorProps> = ({ selectedPeriod, onPeriodC
       <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <div className="min-w-[100px] text-center">
+      <div className="min-w-[100px] text-center flex items-center justify-center">
         <span className="font-medium">{formatMonthShort(selectedPeriod)} {year}</span>
+        <HelpTooltip content="Use estas setas para navegar entre os meses e visualizar dados de períodos diferentes." />
       </div>
       <Button variant="outline" size="icon" onClick={handleNextMonth}>
         <ChevronRight className="h-4 w-4" />

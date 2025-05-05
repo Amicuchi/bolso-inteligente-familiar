@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Transaction } from '@/context/FinanceContext';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { getCategoryName } from '@/utils/categoryUtils';
+import { Badge } from '@/components/ui/badge';
+import HelpTooltip from '@/components/ui/help-tooltip';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -18,7 +20,10 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Transações Recentes</CardTitle>
+        <CardTitle className="flex items-center">
+          Transações Recentes
+          <HelpTooltip content="Exibe as 5 transações mais recentes do seu histórico financeiro." />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {recentTransactions.length > 0 ? (
@@ -35,6 +40,15 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions })
                     <span>•</span>
                     <span>{formatDate(transaction.date)}</span>
                   </div>
+                  {transaction.tags && transaction.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {transaction.tags.map(tag => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <span className={`font-medium ${transaction.type === 'income' ? 'text-income' : 'text-expense'}`}>
                   {transaction.type === 'income' ? '+' : '-'} 

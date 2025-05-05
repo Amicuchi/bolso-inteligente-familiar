@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { ChartPie, Coins, CreditCard, DollarSign, Home, PiggyBank, TrendingUp } from 'lucide-react';
+import { ChartPie, Coins, CreditCard, DollarSign, HelpCircle, Home, PiggyBank, TrendingUp } from 'lucide-react';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -43,6 +43,7 @@ const AppSidebar = () => {
           <NavItem href="/goals" icon={<TrendingUp />} label="Metas" />
           <NavItem href="/savings" icon={<PiggyBank />} label="Caixinhas" />
           <NavItem href="/reports" icon={<ChartPie />} label="Relatórios" />
+          <NavItem href="/help" icon={<HelpCircle />} label="Ajuda" />
         </div>
       </SidebarContent>
     </Sidebar>

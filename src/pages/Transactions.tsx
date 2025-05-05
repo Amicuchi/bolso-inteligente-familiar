@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { getCategoryName } from '@/utils/categoryUtils';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import TransactionDialog from '@/components/transactions/TransactionDialog';
 import { toast } from '@/hooks/use-toast';
 import DeleteConfirmationDialog from '@/components/transactions/DeleteConfirmationDialog';
+import HelpTooltip from '@/components/ui/help-tooltip';
 
 const TransactionsPage = () => {
   const { transactions, deleteTransaction } = useFinance();
@@ -20,20 +22,35 @@ const TransactionsPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState(null);
+  const [tagFilter, setTagFilter] = useState('');
 
-  // Filter transactions based on search term
+  // Filter transactions based on search term and tag filter
   const filteredTransactions = transactions.filter(transaction => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = 
       transaction.description.toLowerCase().includes(searchLower) ||
       getCategoryName(transaction.category).toLowerCase().includes(searchLower) ||
-      transaction.amount.toString().includes(searchLower)
-    );
+      transaction.amount.toString().includes(searchLower);
+    
+    const matchesTag = 
+      !tagFilter || 
+      (transaction.tags && transaction.tags.some(tag => tag.toLowerCase().includes(tagFilter.toLowerCase())));
+    
+    return matchesSearch && matchesTag;
   });
 
   // Sort transactions by date (newest first)
   const sortedTransactions = [...filteredTransactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  // Get all unique tags from transactions
+  const allTags = Array.from(
+    new Set(
+      transactions
+        .flatMap(t => t.tags || [])
+        .filter(Boolean)
+    )
   );
 
   const handleEdit = (transaction) => {
@@ -63,7 +80,10 @@ const TransactionsPage = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
-              <CardTitle>Transações</CardTitle>
+              <CardTitle className="flex items-center">
+                Transações
+                <HelpTooltip content="Gerencie suas receitas e despesas. Adicione, edite ou remova transações." />
+              </CardTitle>
               <CardDescription>
                 Gerencie suas receitas e despesas
               </CardDescription>
@@ -74,15 +94,43 @@ const TransactionsPage = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2 mb-4">
-              <Search className="text-muted-foreground h-5 w-5" />
-              <Input
-                placeholder="Buscar transações..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md"
-              />
+            <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-2 mb-4">
+              <div className="flex-1 w-full flex items-center space-x-2">
+                <Search className="text-muted-foreground h-5 w-5" />
+                <Input
+                  placeholder="Buscar transações..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex-1 w-full flex items-center space-x-2">
+                <Tag className="text-muted-foreground h-5 w-5" />
+                <Input
+                  placeholder="Filtrar por tag..."
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                />
+              </div>
             </div>
+
+            {allTags.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-muted-foreground mb-2">Tags populares:</p>
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map(tag => (
+                    <Badge 
+                      key={tag} 
+                      variant="outline" 
+                      className={`cursor-pointer ${tagFilter === tag ? 'bg-primary text-primary-foreground' : ''}`}
+                      onClick={() => setTagFilter(tagFilter === tag ? '' : tag)}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-md border">
               <Table>
@@ -91,6 +139,7 @@ const TransactionsPage = () => {
                     <TableHead>Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Tags</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -104,6 +153,19 @@ const TransactionsPage = () => {
                         </TableCell>
                         <TableCell>{transaction.description}</TableCell>
                         <TableCell>{getCategoryName(transaction.category)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {transaction.tags && transaction.tags.length > 0 ? (
+                              transaction.tags.map(tag => (
+                                <Badge key={tag} variant="outline" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Sem tags</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell 
                           className={`text-right ${
                             transaction.type === 'income' ? 'text-income' : 'text-expense'
@@ -123,7 +185,7 @@ const TransactionsPage = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-24 text-center">
                         Nenhuma transação encontrada.
                       </TableCell>
                     </TableRow>
