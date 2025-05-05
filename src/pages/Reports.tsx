@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFinance } from '@/context/FinanceContext';
+import { useFinance, CategoryType } from '@/context/FinanceContext';
 import { 
   getCurrentMonth, 
   getFirstDayOfMonth, 
@@ -18,6 +18,9 @@ import CategoryDistribution from '@/components/dashboard/CategoryDistribution';
 import MonthSelector from '@/components/reports/MonthSelector';
 import IncomeExpenseChart from '@/components/reports/IncomeExpenseChart';
 import SavingsReport from '@/components/reports/SavingsReport';
+import ExpenseCategoryComparison from '@/components/reports/ExpenseCategoryComparison';
+import MonthlyTrendChart from '@/components/reports/MonthlyTrendChart';
+import SpendingHeatmapChart from '@/components/reports/SpendingHeatmapChart';
 import HelpTooltip from '@/components/ui/help-tooltip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -55,6 +58,43 @@ const ReportsPage = () => {
       transaction => transaction.date >= firstDay && transaction.date <= lastDay
     );
   }, [transactions, previousPeriod]);
+
+  // Prepare data for monthly trend chart (6 months)
+  const monthlyTrendData = useMemo(() => {
+    const months = [];
+    const currentDate = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate);
+      date.setMonth(currentDate.getMonth() - i);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      months.push(`${year}-${String(month).padStart(2, '0')}`);
+    }
+    
+    return months.map(month => {
+      const firstDay = getFirstDayOfMonth(month);
+      const lastDay = getLastDayOfMonth(month);
+      const monthlyTransactions = transactions.filter(
+        transaction => transaction.date >= firstDay && transaction.date <= lastDay
+      );
+      
+      const income = monthlyTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      const expense = monthlyTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      return {
+        month,
+        income,
+        expense,
+        balance: income - expense
+      };
+    });
+  }, [transactions]);
 
   // Calculate period totals
   const periodTotals = useMemo(() => {
@@ -102,7 +142,7 @@ const ReportsPage = () => {
 
   // Group transactions by category for the selected period
   const categoryTotals = useMemo(() => {
-    const totals = {};
+    const totals: Record<string, number> = {};
     
     filteredTransactions.forEach(transaction => {
       if (transaction.type === 'expense') {
@@ -115,17 +155,17 @@ const ReportsPage = () => {
     
     return Object.entries(totals)
       .map(([category, amount]) => ({ 
-        category, 
-        categoryName: getCategoryName(category), 
-        amount: amount as number,
-        percentage: (amount as number) / periodTotals.expense * 100
+        category: category as CategoryType, 
+        categoryName: getCategoryName(category as CategoryType), 
+        amount,
+        percentage: amount / periodTotals.expense * 100
       }))
       .sort((a, b) => b.amount - a.amount);
   }, [filteredTransactions, periodTotals.expense]);
 
   // Group transactions by tags
   const tagTotals = useMemo(() => {
-    const totals = {};
+    const totals: Record<string, { income: number, expense: number, count: number }> = {};
     
     filteredTransactions.forEach(transaction => {
       if (transaction.tags && transaction.tags.length > 0) {
@@ -152,8 +192,8 @@ const ReportsPage = () => {
     return Object.entries(totals)
       .map(([tag, data]) => ({ 
         tag, 
-        ...data as { income: number, expense: number, count: number },
-        net: (data as any).income - (data as any).expense
+        ...data,
+        net: data.income - data.expense
       }))
       .sort((a, b) => b.count - a.count);
   }, [filteredTransactions]);
@@ -259,9 +299,12 @@ const ReportsPage = () => {
         </div>
 
         <Tabs defaultValue="monthly">
-          <TabsList className="grid grid-cols-4 mb-4">
+          <TabsList className="grid grid-cols-7 mb-4">
             <TabsTrigger value="monthly">Mensal</TabsTrigger>
             <TabsTrigger value="category">Por Categoria</TabsTrigger>
+            <TabsTrigger value="comparison">Comparação</TabsTrigger>
+            <TabsTrigger value="trends">Tendências</TabsTrigger>
+            <TabsTrigger value="heatmap">Mapa de Calor</TabsTrigger>
             <TabsTrigger value="tags">Por Tags</TabsTrigger>
             <TabsTrigger value="savings">Poupanças</TabsTrigger>
           </TabsList>
@@ -308,7 +351,6 @@ const ReportsPage = () => {
                           ? Math.min(((periodTotals.income - periodTotals.expense) / periodTotals.income * 100), 100) 
                           : 0} 
                         className="h-2"
-                        indicatorClassName="bg-income"
                       />
                     </div>
                     
@@ -405,6 +447,26 @@ const ReportsPage = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          {/* New tab: Category Comparison */}
+          <TabsContent value="comparison" className="space-y-4">
+            <ExpenseCategoryComparison 
+              currentPeriodTransactions={filteredTransactions}
+              previousPeriodTransactions={previousTransactions}
+              currentPeriodLabel={formatMonthShort(selectedPeriod)}
+              previousPeriodLabel={formatMonthShort(previousPeriod)}
+            />
+          </TabsContent>
+          
+          {/* New tab: Trends */}
+          <TabsContent value="trends" className="space-y-4">
+            <MonthlyTrendChart monthlyData={monthlyTrendData} />
+          </TabsContent>
+          
+          {/* New tab: Heatmap */}
+          <TabsContent value="heatmap" className="space-y-4">
+            <SpendingHeatmapChart transactions={transactions} />
           </TabsContent>
           
           <TabsContent value="tags" className="space-y-4">

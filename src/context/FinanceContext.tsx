@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { categoryInfo } from '../utils/categoryUtils';
 
@@ -61,6 +62,21 @@ export interface SavingsBox {
   }[];
 }
 
+export interface ForecastData {
+  month: string; // Formato YYYY-MM
+  income: number;
+  expense: number;
+  balance: number;
+  categories: Record<CategoryType, number>;
+}
+
+// Import initial data from separate files
+import { initialTransactions } from './initialData/transactions';
+import { initialBudgets } from './initialData/budgets';
+import { initialGoals } from './initialData/goals';
+import { initialSavingsBoxes } from './initialData/savingsBoxes';
+
+// Finance Context Type
 interface FinanceContextType {
   transactions: Transaction[];
   budgets: Budget[];
@@ -83,149 +99,11 @@ interface FinanceContextType {
   getForecast: (months: number) => ForecastData[];
 }
 
-export interface ForecastData {
-  month: string; // Formato YYYY-MM
-  income: number;
-  expense: number;
-  balance: number;
-  categories: Record<CategoryType, number>;
-}
-
 // Create the context
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 // Generate a unique ID
 const generateId = () => Math.random().toString(36).substring(2, 15);
-
-// Mock data for initial state
-const initialTransactions: Transaction[] = [
-  {
-    id: 't1',
-    type: 'income',
-    amount: 5000,
-    date: '2025-05-01',
-    category: 'salary',
-    description: 'Salário Mensal',
-    tags: ['Fixo', 'Mensal'],
-    isRecurring: true,
-    frequency: 'monthly'
-  },
-  {
-    id: 't2',
-    type: 'expense',
-    amount: 1200,
-    date: '2025-05-02',
-    category: 'housing',
-    description: 'Aluguel',
-    tags: ['Fixo', 'Moradia'],
-    isRecurring: true,
-    frequency: 'monthly'
-  },
-  {
-    id: 't3',
-    type: 'expense',
-    amount: 320,
-    date: '2025-05-02',
-    category: 'food',
-    description: 'Compras do mês',
-    tags: ['Mercado'],
-    isRecurring: true,
-    frequency: 'monthly'
-  },
-  {
-    id: 't4',
-    type: 'expense',
-    amount: 150,
-    date: '2025-05-02',
-    category: 'transport',
-    description: 'Combustível',
-    tags: ['Carro'],
-    isRecurring: true,
-    frequency: 'monthly'
-  },
-  {
-    id: 't5',
-    type: 'expense',
-    amount: 80,
-    date: '2025-05-03',
-    category: 'leisure',
-    description: 'Cinema',
-    tags: ['Lazer']
-  }
-];
-
-const initialBudgets: Budget[] = [
-  {
-    id: 'b1',
-    category: 'food',
-    amount: 500,
-    period: '2025-05'
-  },
-  {
-    id: 'b2',
-    category: 'transport',
-    amount: 300,
-    period: '2025-05'
-  },
-  {
-    id: 'b3',
-    category: 'leisure',
-    amount: 200,
-    period: '2025-05'
-  }
-];
-
-const initialGoals: Goal[] = [
-  {
-    id: 'g1',
-    name: 'Fundo de emergência',
-    targetAmount: 10000,
-    currentAmount: 2000,
-    deadline: '2025-12-31',
-    type: 'accumulated'
-  },
-  {
-    id: 'g2',
-    name: 'Economizar por mês',
-    targetAmount: 500,
-    currentAmount: 0,
-    deadline: '2025-05-31',
-    type: 'monthly-saving'
-  }
-];
-
-const initialSavingsBoxes: SavingsBox[] = [
-  {
-    id: 'sb1',
-    name: 'Reserva de emergência',
-    targetAmount: 10000,
-    currentAmount: 2000,
-    transactions: [
-      {
-        id: 'sbt1',
-        amount: 2000,
-        date: '2025-05-01',
-        type: 'deposit',
-        description: 'Depósito inicial'
-      }
-    ]
-  },
-  {
-    id: 'sb2',
-    name: 'Viagem de férias',
-    targetAmount: 5000,
-    currentAmount: 1500,
-    transactions: [
-      {
-        id: 'sbt2',
-        amount: 1500,
-        date: '2025-05-01',
-        type: 'deposit',
-        description: 'Depósito inicial'
-      }
-    ]
-  }
-];
 
 // Create a provider component
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
