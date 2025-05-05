@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { categoryInfo } from '../utils/categoryUtils';
 
 // Define types for our financial data
 export type TransactionType = 'income' | 'expense';
@@ -24,7 +25,9 @@ export interface Transaction {
   date: string;
   category: CategoryType;
   description: string;
-  tags?: string[]; // Adicionado o campo tags como opcional
+  tags?: string[];
+  isRecurring?: boolean; // Indica se é uma transação recorrente
+  frequency?: 'monthly' | 'weekly' | 'yearly'; // Frequência da recorrência
 }
 
 export interface Budget {
@@ -76,6 +79,16 @@ interface FinanceContextType {
   updateSavingsBox: (box: SavingsBox) => void;
   deleteSavingsBox: (id: string) => void;
   addSavingsTransaction: (boxId: string, transaction: Omit<SavingsBox['transactions'][0], 'id'>) => void;
+  getRecurringTransactions: () => Transaction[];
+  getForecast: (months: number) => ForecastData[];
+}
+
+export interface ForecastData {
+  month: string; // Formato YYYY-MM
+  income: number;
+  expense: number;
+  balance: number;
+  categories: Record<CategoryType, number>;
 }
 
 // Create the context
@@ -93,7 +106,9 @@ const initialTransactions: Transaction[] = [
     date: '2025-05-01',
     category: 'salary',
     description: 'Salário Mensal',
-    tags: ['Fixo', 'Mensal']
+    tags: ['Fixo', 'Mensal'],
+    isRecurring: true,
+    frequency: 'monthly'
   },
   {
     id: 't2',
@@ -102,7 +117,9 @@ const initialTransactions: Transaction[] = [
     date: '2025-05-02',
     category: 'housing',
     description: 'Aluguel',
-    tags: ['Fixo', 'Moradia']
+    tags: ['Fixo', 'Moradia'],
+    isRecurring: true,
+    frequency: 'monthly'
   },
   {
     id: 't3',
@@ -111,7 +128,9 @@ const initialTransactions: Transaction[] = [
     date: '2025-05-02',
     category: 'food',
     description: 'Compras do mês',
-    tags: ['Mercado']
+    tags: ['Mercado'],
+    isRecurring: true,
+    frequency: 'monthly'
   },
   {
     id: 't4',
@@ -120,7 +139,9 @@ const initialTransactions: Transaction[] = [
     date: '2025-05-02',
     category: 'transport',
     description: 'Combustível',
-    tags: ['Carro']
+    tags: ['Carro'],
+    isRecurring: true,
+    frequency: 'monthly'
   },
   {
     id: 't5',
@@ -325,6 +346,78 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSavingsBoxes(newBoxes);
   };
 
+  // Get recurring transactions
+  const getRecurringTransactions = () => {
+    return transactions.filter(transaction => transaction.isRecurring);
+  };
+
+  // Generate financial forecast
+  const getForecast = (months: number): ForecastData[] => {
+    const currentDate = new Date();
+    const forecast: ForecastData[] = [];
+    const recurringTransactions = getRecurringTransactions();
+    
+    // Inicializa categorias com valor zero
+    const initCategories = () => {
+      const categories: Record<CategoryType, number> = {} as Record<CategoryType, number>;
+      Object.keys(categoryInfo).forEach(category => {
+        categories[category as CategoryType] = 0;
+      });
+      return categories;
+    };
+
+    // Para cada mês futuro
+    for (let i = 0; i < months; i++) {
+      const forecastDate = new Date(currentDate);
+      forecastDate.setMonth(currentDate.getMonth() + i);
+      
+      const monthStr = `${forecastDate.getFullYear()}-${String(forecastDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      let monthlyIncome = 0;
+      let monthlyExpense = 0;
+      const monthlyCategories = initCategories();
+      
+      // Adiciona transações recorrentes para este mês de previsão
+      recurringTransactions.forEach(transaction => {
+        if (transaction.frequency === 'monthly') {
+          // Para transações mensais, adicionamos uma vez por mês de previsão
+          if (transaction.type === 'income') {
+            monthlyIncome += transaction.amount;
+          } else {
+            monthlyExpense += transaction.amount;
+          }
+          
+          // Adiciona ao total da categoria
+          monthlyCategories[transaction.category] += transaction.amount;
+        } else if (transaction.frequency === 'yearly') {
+          // Para transações anuais, verificamos se o mês coincide
+          const transactionDate = new Date(transaction.date);
+          if (transactionDate.getMonth() === forecastDate.getMonth()) {
+            if (transaction.type === 'income') {
+              monthlyIncome += transaction.amount;
+            } else {
+              monthlyExpense += transaction.amount;
+            }
+            
+            // Adiciona ao total da categoria
+            monthlyCategories[transaction.category] += transaction.amount;
+          }
+        }
+        // Poderíamos adicionar lógica para frequência semanal se necessário
+      });
+      
+      forecast.push({
+        month: monthStr,
+        income: monthlyIncome,
+        expense: monthlyExpense,
+        balance: monthlyIncome - monthlyExpense,
+        categories: monthlyCategories
+      });
+    }
+    
+    return forecast;
+  };
+
   return (
     <FinanceContext.Provider
       value={{
@@ -344,7 +437,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addSavingsBox,
         updateSavingsBox,
         deleteSavingsBox,
-        addSavingsTransaction
+        addSavingsTransaction,
+        getRecurringTransactions,
+        getForecast
       }}
     >
       {children}
