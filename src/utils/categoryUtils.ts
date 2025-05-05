@@ -1,4 +1,3 @@
-
 import { CategoryType } from '../context/FinanceContext';
 
 // Define category metadata
@@ -84,6 +83,15 @@ export const categoryInfo: Record<CategoryType, CategoryInfo> = {
     isExpense: true
   }
 };
+
+// Criar e exportar a lista de categorias para uso em componentes
+export const categories = Object.entries(categoryInfo).map(([id, info]) => ({
+  id: id as CategoryType,
+  name: info.name,
+  color: info.color,
+  icon: info.icon,
+  isExpense: info.isExpense
+}));
 
 // Get category expense options
 export const getExpenseCategories = (): CategoryType[] => {

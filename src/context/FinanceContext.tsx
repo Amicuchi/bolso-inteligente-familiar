@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 // Define types for our financial data
@@ -25,6 +24,7 @@ export interface Transaction {
   date: string;
   category: CategoryType;
   description: string;
+  tags?: string[]; // Adicionado o campo tags como opcional
 }
 
 export interface Budget {
@@ -92,7 +92,8 @@ const initialTransactions: Transaction[] = [
     amount: 5000,
     date: '2025-05-01',
     category: 'salary',
-    description: 'Salário Mensal'
+    description: 'Salário Mensal',
+    tags: ['Fixo', 'Mensal']
   },
   {
     id: 't2',
@@ -100,7 +101,8 @@ const initialTransactions: Transaction[] = [
     amount: 1200,
     date: '2025-05-02',
     category: 'housing',
-    description: 'Aluguel'
+    description: 'Aluguel',
+    tags: ['Fixo', 'Moradia']
   },
   {
     id: 't3',
@@ -108,7 +110,8 @@ const initialTransactions: Transaction[] = [
     amount: 320,
     date: '2025-05-02',
     category: 'food',
-    description: 'Compras do mês'
+    description: 'Compras do mês',
+    tags: ['Mercado']
   },
   {
     id: 't4',
@@ -116,7 +119,8 @@ const initialTransactions: Transaction[] = [
     amount: 150,
     date: '2025-05-02',
     category: 'transport',
-    description: 'Combustível'
+    description: 'Combustível',
+    tags: ['Carro']
   },
   {
     id: 't5',
@@ -124,7 +128,8 @@ const initialTransactions: Transaction[] = [
     amount: 80,
     date: '2025-05-03',
     category: 'leisure',
-    description: 'Cinema'
+    description: 'Cinema',
+    tags: ['Lazer']
   }
 ];
 

@@ -17,7 +17,11 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({ content }) => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button className="ml-1 inline-flex items-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+          <button 
+            type="button"
+            className="ml-1 inline-flex items-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            onClick={(e) => e.preventDefault()}
+          >
             <HelpCircle className="h-4 w-4" />
           </button>
         </TooltipTrigger>
