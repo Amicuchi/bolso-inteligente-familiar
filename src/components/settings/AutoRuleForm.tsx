@@ -121,7 +121,7 @@ export const AutoRuleForm: React.FC<AutoRuleFormProps> = ({
   // Manipulador de envio do formulário
   const handleSubmit = (values: AutoRuleFormValues) => {
     // Corrigindo o tipo para a condição "between"
-    let conditionValue: string | number | [string, string];
+    let conditionValue: string | number | [string, string] | [number, number];
     
     if (values.conditionOperator === 'between' && values.conditionValueEnd) {
       conditionValue = [values.conditionValue, values.conditionValueEnd];

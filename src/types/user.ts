@@ -43,7 +43,7 @@ export interface AutoRule {
   condition: {
     field: 'description' | 'amount' | 'date' | 'category';
     operator: 'contains' | 'equals' | 'greater_than' | 'less_than' | 'between';
-    value: string | number | [string, string]; // Para between podemos usar um array
+    value: string | number | [string, string] | [number, number]; // Adicionando suporte para array de números
   };
   action: {
     type: 'set_category' | 'add_tag' | 'notify';
