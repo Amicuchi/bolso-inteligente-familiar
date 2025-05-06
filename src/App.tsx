@@ -14,6 +14,7 @@ import SavingsPage from "./pages/Savings";
 import ReportsPage from "./pages/Reports";
 import HelpPage from "./pages/Help";
 import ForecastPage from "./pages/Forecast";
+import SettingsPage from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/savings" element={<SavingsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/forecast" element={<ForecastPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/help" element={<HelpPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

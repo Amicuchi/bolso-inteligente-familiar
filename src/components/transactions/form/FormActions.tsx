@@ -5,16 +5,25 @@ import { Button } from '@/components/ui/button';
 interface FormActionsProps {
   onCancel: () => void;
   isEditing: boolean;
+  cancelText?: string;
+  saveText?: string;
+  addText?: string;
 }
 
-export const FormActions: React.FC<FormActionsProps> = ({ onCancel, isEditing }) => {
+export const FormActions: React.FC<FormActionsProps> = ({ 
+  onCancel, 
+  isEditing,
+  cancelText = 'Cancelar',
+  saveText = 'Salvar',
+  addText = 'Adicionar'
+}) => {
   return (
     <div className="flex justify-end space-x-2 pt-3">
       <Button variant="outline" type="button" onClick={onCancel}>
-        Cancelar
+        {cancelText}
       </Button>
       <Button type="submit">
-        {isEditing ? 'Salvar' : 'Adicionar'}
+        {isEditing ? saveText : addText}
       </Button>
     </div>
   );
