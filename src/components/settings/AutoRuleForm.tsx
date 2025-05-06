@@ -120,14 +120,19 @@ export const AutoRuleForm: React.FC<AutoRuleFormProps> = ({
 
   // Manipulador de envio do formulário
   const handleSubmit = (values: AutoRuleFormValues) => {
-    const conditionValue = values.conditionOperator === 'between'
-      ? [values.conditionValue, values.conditionValueEnd as string]
-      : values.conditionValue;
+    // Corrigindo o tipo para a condição "between"
+    let conditionValue: string | number | [string, string];
+    
+    if (values.conditionOperator === 'between' && values.conditionValueEnd) {
+      conditionValue = [values.conditionValue, values.conditionValueEnd];
+    } else {
+      conditionValue = values.conditionValue;
+    }
     
     // Converte o valor para número se o campo for "amount"
     const processedValue = values.conditionField === 'amount'
       ? (Array.isArray(conditionValue) 
-          ? conditionValue.map(v => parseFloat(v)) 
+          ? conditionValue.map(v => parseFloat(v)) as [number, number]
           : parseFloat(conditionValue))
       : conditionValue;
     

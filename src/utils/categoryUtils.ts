@@ -83,3 +83,8 @@ export function getCategoryName(categoryId: string): string {
 export function getCategoryColor(categoryId: string): string {
   return categoryInfo[categoryId]?.color || '#6B7280';
 }
+
+// Função para obter todas as categorias como array de strings
+export function getAllCategoryNames(): string[] {
+  return Object.keys(categoryInfo);
+}
