@@ -83,7 +83,8 @@ export const generateForecast = (months: number, recurringTransactions: Transact
   return forecast;
 };
 
-function applyTransaction(month: ForecastData, type: TransactionType, amount: number, category: CategoryType) {
+// Função auxiliar para aplicar uma transação no mês de previsão
+function applyTransaction(month: ForecastData, type: 'income' | 'expense', amount: number, category: CategoryType) {
   if (type === 'income') {
     month.income += amount;
     month.categories[category] += amount;
@@ -92,3 +93,16 @@ function applyTransaction(month: ForecastData, type: TransactionType, amount: nu
     month.categories[category] += amount;
   }
 }
+
+// Função para formatar o mês para exibição
+export const formatMonth = (monthStr: string): string => {
+  const date = parseISO(`${monthStr}-01`);
+  return format(date, 'MMMM yyyy');
+};
+
+// Função para calcular a taxa de poupança
+export const calculateSavingsRate = (income: number, expense: number): number => {
+  if (income === 0) return 0;
+  const savings = income - expense;
+  return (savings / income) * 100;
+};

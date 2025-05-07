@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ForecastData } from '@/context/FinanceContext';
+import { ForecastData } from '@/context/types';
 import { formatCurrency } from '@/utils/format';
 import { formatMonth } from '@/utils/forecastUtils';
 import HelpTooltip from '@/components/ui/help-tooltip';
