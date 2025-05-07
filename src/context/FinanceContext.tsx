@@ -1,66 +1,30 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
-import { generateForecast } from './utils/financeUtils';
+import { useAuth } from './AuthContext';
+import { 
+  FinanceContextType, 
+  Transaction, 
+  Budget, 
+  Goal, 
+  SavingsBox,
+  CategoryType,
+  TransactionType
+} from './types';
 import { toast } from 'sonner';
-import type { Transaction, Budget, Goal, SavingsBox, ForecastData } from './types';
-
-// Re-export all types from types.ts for backwards compatibility
-export * from './types';
-
-// Create the context type
-interface FinanceContextType {
-  transactions: Transaction[];
-  budgets: Budget[];
-  goals: Goal[];
-  savingsBoxes: SavingsBox[];
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
-  updateTransaction: (transaction: Transaction) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
-  addBudget: (budget: Omit<Budget, 'id'>) => Promise<void>;
-  updateBudget: (budget: Budget) => Promise<void>;
-  deleteBudget: (id: string) => Promise<void>;
-  addGoal: (goal: Omit<Goal, 'id'>) => Promise<void>;
-  updateGoal: (goal: Goal) => Promise<void>;
-  deleteGoal: (id: string) => Promise<void>;
-  addSavingsBox: (box: Omit<SavingsBox, 'id' | 'transactions'>) => Promise<void>;
-  updateSavingsBox: (box: SavingsBox) => Promise<void>;
-  deleteSavingsBox: (id: string) => Promise<void>;
-  addSavingsTransaction: (boxId: string, transaction: Omit<SavingsBox['transactions'][0], 'id'>) => Promise<void>;
-  getRecurringTransactions: () => Transaction[];
-  getForecast: (months: number) => ForecastData[];
-  loading: {
-    transactions: boolean;
-    budgets: boolean;
-    goals: boolean;
-    savingsBoxes: boolean;
-  }
-}
 
 // Create the context
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
-// Create a provider component
-export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // State for storing data
+export function FinanceProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [savingsBoxes, setSavingsBoxes] = useState<SavingsBox[]>([]);
-  const [savingsTransactions, setSavingsTransactions] = useState<Record<string, SavingsBox['transactions']>>({});
-  
-  // Loading states
-  const [loading, setLoading] = useState({
-    transactions: true,
-    budgets: true,
-    goals: true,
-    savingsBoxes: true,
-  });
-  
-  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch data when user changes
+  // Fetch data from Supabase when user changes
   useEffect(() => {
     if (user) {
       fetchTransactions();
@@ -73,218 +37,292 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setBudgets([]);
       setGoals([]);
       setSavingsBoxes([]);
-      setSavingsTransactions({});
     }
   }, [user]);
 
   // Fetch transactions from Supabase
   const fetchTransactions = async () => {
-    if (!user) return;
-    
     try {
-      setLoading(prev => ({ ...prev, transactions: true }));
-      
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .order('date', { ascending: false });
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Convert Supabase data format to our app format
+        const formattedData: Transaction[] = data.map(item => ({
+          id: item.id,
+          type: item.type as TransactionType,
+          amount: item.amount,
+          date: item.date,
+          category: item.category as CategoryType,
+          description: item.description,
+          tags: item.tags || [],
+          isRecurring: item.is_recurring || false,
+          frequency: item.frequency || undefined,
+        }));
         
-      if (error) throw error;
-      
-      // Convert database format to app format
-      const formattedTransactions = data.map(item => ({
-        id: item.id,
-        type: item.type as 'income' | 'expense',
-        amount: Number(item.amount),
-        date: item.date,
-        category: item.category,
-        description: item.description,
-        tags: item.tags || [],
-        isRecurring: item.is_recurring || false,
-        frequency: item.frequency,
-      }));
-      
-      setTransactions(formattedTransactions);
+        setTransactions(formattedData);
+      }
     } catch (error: any) {
-      console.error('Erro ao buscar transações:', error);
-      toast.error('Erro ao carregar transações');
+      console.error('Error fetching transactions:', error.message);
+      toast.error('Falha ao buscar transações');
     } finally {
-      setLoading(prev => ({ ...prev, transactions: false }));
+      setIsLoading(false);
     }
   };
 
   // Fetch budgets from Supabase
   const fetchBudgets = async () => {
-    if (!user) return;
-    
     try {
-      setLoading(prev => ({ ...prev, budgets: true }));
-      
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('budgets')
         .select('*')
-        .order('period', { ascending: false });
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Convert Supabase data format to our app format
+        const formattedData: Budget[] = data.map(item => ({
+          id: item.id,
+          category: item.category as CategoryType,
+          amount: item.amount,
+          period: item.period,
+        }));
         
-      if (error) throw error;
-      
-      // Convert database format to app format
-      const formattedBudgets = data.map(item => ({
-        id: item.id,
-        category: item.category,
-        amount: Number(item.amount),
-        period: item.period,
-      }));
-      
-      setBudgets(formattedBudgets);
+        setBudgets(formattedData);
+      }
     } catch (error: any) {
-      console.error('Erro ao buscar orçamentos:', error);
-      toast.error('Erro ao carregar orçamentos');
+      console.error('Error fetching budgets:', error.message);
+      toast.error('Falha ao buscar orçamentos');
     } finally {
-      setLoading(prev => ({ ...prev, budgets: false }));
+      setIsLoading(false);
     }
   };
 
   // Fetch goals from Supabase
   const fetchGoals = async () => {
-    if (!user) return;
-    
     try {
-      setLoading(prev => ({ ...prev, goals: true }));
-      
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('goals')
         .select('*')
-        .order('deadline', { ascending: true });
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Convert Supabase data format to our app format
+        const formattedData: Goal[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          targetAmount: item.target_amount,
+          currentAmount: item.current_amount,
+          deadline: item.deadline,
+          category: item.category as CategoryType | undefined,
+          type: item.type as 'monthly-saving' | 'accumulated' | 'category-limit',
+        }));
         
-      if (error) throw error;
-      
-      // Convert database format to app format
-      const formattedGoals = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        targetAmount: Number(item.target_amount),
-        currentAmount: Number(item.current_amount),
-        deadline: item.deadline,
-        category: item.category,
-        type: item.type as 'monthly-saving' | 'accumulated' | 'category-limit',
-      }));
-      
-      setGoals(formattedGoals);
+        setGoals(formattedData);
+      }
     } catch (error: any) {
-      console.error('Erro ao buscar metas:', error);
-      toast.error('Erro ao carregar metas');
+      console.error('Error fetching goals:', error.message);
+      toast.error('Falha ao buscar metas');
     } finally {
-      setLoading(prev => ({ ...prev, goals: false }));
+      setIsLoading(false);
     }
   };
 
-  // Fetch savings boxes and transactions from Supabase
+  // Fetch savings boxes from Supabase
   const fetchSavingsBoxes = async () => {
-    if (!user) return;
-    
     try {
-      setLoading(prev => ({ ...prev, savingsBoxes: true }));
-      
-      // Get savings boxes
-      const { data: boxesData, error: boxesError } = await supabase
+      setIsLoading(true);
+      const { data, error } = await supabase
         .from('savings_boxes')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select(`
+          *,
+          savings_transactions(*)
+        `)
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Convert Supabase data format to our app format
+        const formattedData: SavingsBox[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          targetAmount: item.target_amount,
+          currentAmount: item.current_amount,
+          transactions: item.savings_transactions ? item.savings_transactions.map((trans: any) => ({
+            id: trans.id,
+            amount: trans.amount,
+            date: trans.date,
+            type: trans.type as 'deposit' | 'withdrawal',
+            description: trans.description,
+          })) : [],
+        }));
         
-      if (boxesError) throw boxesError;
-      
-      // Get all transactions for all boxes
-      const boxIds = boxesData.map(box => box.id);
-      
-      if (boxIds.length > 0) {
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('savings_transactions')
-          .select('*')
-          .in('box_id', boxIds)
-          .order('date', { ascending: false });
-          
-        if (transactionsError) throw transactionsError;
-        
-        // Group transactions by box_id
-        const transactionsByBoxId: Record<string, any[]> = {};
-        
-        transactionsData.forEach(transaction => {
-          if (!transactionsByBoxId[transaction.box_id]) {
-            transactionsByBoxId[transaction.box_id] = [];
-          }
-          
-          transactionsByBoxId[transaction.box_id].push({
-            id: transaction.id,
-            amount: Number(transaction.amount),
-            date: transaction.date,
-            type: transaction.type,
-            description: transaction.description,
-          });
-        });
-        
-        setSavingsTransactions(transactionsByBoxId);
+        setSavingsBoxes(formattedData);
+      }
+    } catch (error: any) {
+      console.error('Error fetching savings boxes:', error.message);
+      toast.error('Falha ao buscar caixas de poupança');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add a new transaction
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+
+    try {
+      // Format data for Supabase
+      const newTransaction = {
+        user_id: user.id,
+        type: transaction.type,
+        amount: transaction.amount,
+        date: transaction.date,
+        category: transaction.category,
+        description: transaction.description,
+        tags: transaction.tags || [],
+        isRecurring: transaction.isRecurring || false,
+        frequency: transaction.frequency || null,
+      };
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([newTransaction])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Add the new transaction to state
+        setTransactions(prev => [...prev, {
+          id: data.id,
+          type: data.type as TransactionType,
+          amount: data.amount,
+          date: data.date,
+          category: data.category as CategoryType,
+          description: data.description,
+          tags: data.tags || [],
+          isRecurring: data.is_recurring || false,
+          frequency: data.frequency || undefined,
+        }]);
       }
       
-      // Format savings boxes with their transactions
-      const formattedBoxes = boxesData.map(box => ({
-        id: box.id,
-        name: box.name,
-        targetAmount: box.target_amount ? Number(box.target_amount) : undefined,
-        currentAmount: Number(box.current_amount),
-        transactions: (savingsTransactions[box.id] || []),
-      }));
-      
-      setSavingsBoxes(formattedBoxes);
+      toast.success('Transação adicionada com sucesso');
     } catch (error: any) {
-      console.error('Erro ao buscar caixinhas:', error);
-      toast.error('Erro ao carregar caixinhas de poupança');
-    } finally {
-      setLoading(prev => ({ ...prev, savingsBoxes: false }));
+      console.error('Error adding transaction:', error.message);
+      toast.error('Falha ao adicionar transação');
+    }
+  };
+
+  // Add a new budget
+  const addBudget = async (budget: Omit<Budget, 'id'>) => {
+    if (!user) return;
+
+    try {
+      // Format data for Supabase
+      const newBudget = {
+        user_id: user.id,
+        category: budget.category,
+        amount: budget.amount,
+        period: budget.period
+      };
+
+      const { data, error } = await supabase
+        .from('budgets')
+        .insert([newBudget])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Add the new budget to state
+        setBudgets(prev => [...prev, {
+          id: data.id,
+          category: data.category as CategoryType,
+          amount: data.amount,
+          period: data.period
+        }]);
+      }
+      
+      toast.success('Orçamento adicionado com sucesso');
+    } catch (error: any) {
+      console.error('Error adding budget:', error.message);
+      toast.error('Falha ao adicionar orçamento');
+    }
+  };
+
+  // Add a new goal
+  const addGoal = async (goal: Omit<Goal, 'id'>) => {
+    if (!user) return;
+
+    try {
+      // Format data for Supabase
+      const newGoal = {
+        user_id: user.id,
+        name: goal.name,
+        target_amount: goal.targetAmount,
+        current_amount: goal.currentAmount,
+        deadline: goal.deadline,
+        category: goal.category || null,
+        type: goal.type
+      };
+
+      const { data, error } = await supabase
+        .from('goals')
+        .insert([newGoal])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Add the new goal to state
+        setGoals(prev => [...prev, {
+          id: data.id,
+          name: data.name,
+          targetAmount: data.target_amount,
+          currentAmount: data.current_amount,
+          deadline: data.deadline,
+          category: data.category as CategoryType | undefined,
+          type: data.type as 'monthly-saving' | 'accumulated' | 'category-limit'
+        }]);
+      }
+      
+      toast.success('Meta adicionada com sucesso');
+    } catch (error: any) {
+      console.error('Error adding goal:', error.message);
+      toast.error('Falha ao adicionar meta');
     }
   };
 
   // Transaction CRUD operations
-  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-          type: transaction.type,
-          amount: transaction.amount,
-          date: transaction.date,
-          category: transaction.category,
-          description: transaction.description,
-          tags: transaction.tags || [],
-          is_recurring: transaction.isRecurring || false,
-          frequency: transaction.frequency,
-        })
-        .select('*')
-        .single();
-        
-      if (error) throw error;
-      
-      const newTransaction = {
-        id: data.id,
-        type: data.type as 'income' | 'expense',
-        amount: Number(data.amount),
-        date: data.date,
-        category: data.category,
-        description: data.description,
-        tags: data.tags || [],
-        isRecurring: data.is_recurring || false,
-        frequency: data.frequency,
-      };
-      
-      setTransactions(prev => [newTransaction, ...prev]);
-      toast.success('Transação adicionada com sucesso');
-      
-    } catch (error: any) {
-      console.error('Erro ao adicionar transação:', error);
-      toast.error('Erro ao adicionar transação');
-      throw error;
-    }
-  };
-
   const updateTransaction = async (transaction: Transaction) => {
     try {
       const { error } = await supabase
@@ -335,37 +373,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Budget CRUD operations
-  const addBudget = async (budget: Omit<Budget, 'id'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('budgets')
-        .insert({
-          category: budget.category,
-          amount: budget.amount,
-          period: budget.period,
-        })
-        .select('*')
-        .single();
-        
-      if (error) throw error;
-      
-      const newBudget = {
-        id: data.id,
-        category: data.category,
-        amount: Number(data.amount),
-        period: data.period,
-      };
-      
-      setBudgets(prev => [newBudget, ...prev]);
-      toast.success('Orçamento adicionado com sucesso');
-      
-    } catch (error: any) {
-      console.error('Erro ao adicionar orçamento:', error);
-      toast.error('Erro ao adicionar orçamento');
-      throw error;
-    }
-  };
-
   const updateBudget = async (budget: Budget) => {
     try {
       const { error } = await supabase
@@ -411,43 +418,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Goal CRUD operations
-  const addGoal = async (goal: Omit<Goal, 'id'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('goals')
-        .insert({
-          name: goal.name,
-          target_amount: goal.targetAmount,
-          current_amount: goal.currentAmount,
-          deadline: goal.deadline,
-          category: goal.category,
-          type: goal.type,
-        })
-        .select('*')
-        .single();
-        
-      if (error) throw error;
-      
-      const newGoal = {
-        id: data.id,
-        name: data.name,
-        targetAmount: Number(data.target_amount),
-        currentAmount: Number(data.current_amount),
-        deadline: data.deadline,
-        category: data.category,
-        type: data.type as 'monthly-saving' | 'accumulated' | 'category-limit',
-      };
-      
-      setGoals(prev => [newGoal, ...prev]);
-      toast.success('Meta adicionada com sucesso');
-      
-    } catch (error: any) {
-      console.error('Erro ao adicionar meta:', error);
-      toast.error('Erro ao adicionar meta');
-      throw error;
-    }
-  };
-
   const updateGoal = async (goal: Goal) => {
     try {
       const { error } = await supabase
@@ -649,40 +619,38 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   return (
-    <FinanceContext.Provider
-      value={{
-        transactions,
-        budgets,
-        goals,
-        savingsBoxes,
-        addTransaction,
-        updateTransaction,
-        deleteTransaction,
-        addBudget,
-        updateBudget,
-        deleteBudget,
-        addGoal,
-        updateGoal,
-        deleteGoal,
-        addSavingsBox,
-        updateSavingsBox,
-        deleteSavingsBox,
-        addSavingsTransaction,
-        getRecurringTransactions,
-        getForecast,
-        loading
-      }}
-    >
+    <FinanceContext.Provider value={{
+      transactions,
+      budgets,
+      goals,
+      savingsBoxes,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      addBudget,
+      updateBudget,
+      deleteBudget,
+      addGoal,
+      updateGoal,
+      deleteGoal,
+      addSavingsBox,
+      updateSavingsBox,
+      deleteSavingsBox,
+      addSavingsTransaction,
+      getRecurringTransactions,
+      getForecast,
+      isLoading
+    }}>
       {children}
     </FinanceContext.Provider>
   );
-};
+}
 
 // Create a hook to use the finance context
 export const useFinance = () => {
   const context = useContext(FinanceContext);
   if (context === undefined) {
-    throw new Error('useFinance must be used within a FinanceProvider');
+    throw new Error('useFinance deve ser usado dentro de um FinanceProvider');
   }
   return context;
 };

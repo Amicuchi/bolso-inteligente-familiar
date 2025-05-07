@@ -24,13 +24,18 @@ const Auth = () => {
       return;
     }
 
+    // Garantir que o nome tenha no máximo 20 caracteres para evitar erros
+    const truncatedName = name.substring(0, 20);
+
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name }
+          data: { 
+            name: truncatedName 
+          }
         }
       });
 
@@ -40,6 +45,7 @@ const Auth = () => {
       
     } catch (error: any) {
       toast.error(error.message || 'Erro ao criar conta');
+      console.error('Erro de cadastro:', error);
     } finally {
       setLoading(false);
     }
@@ -67,6 +73,7 @@ const Auth = () => {
       
     } catch (error: any) {
       toast.error(error.message || 'Credenciais inválidas');
+      console.error('Erro de login:', error);
     } finally {
       setLoading(false);
     }
@@ -132,8 +139,12 @@ const Auth = () => {
                     placeholder="Seu nome"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    maxLength={20} // Limitando a 20 caracteres
                     required
                   />
+                  <p className="text-xs text-gray-500">
+                    {name.length}/20 caracteres
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-register">Email</Label>
