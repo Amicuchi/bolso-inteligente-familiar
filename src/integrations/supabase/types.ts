@@ -9,7 +9,326 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      auto_rules: {
+        Row: {
+          action_type: string
+          action_value: string
+          condition_field: string
+          condition_operator: string
+          condition_value: Json
+          created_at: string | null
+          description: string | null
+          enabled: boolean | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          action_value: string
+          condition_field: string
+          condition_operator: string
+          condition_value: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          action_value?: string
+          condition_field?: string
+          condition_operator?: string
+          condition_value?: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_rules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          id: string
+          period: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          id?: string
+          period: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          id?: string
+          period?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          current_amount: number
+          deadline: string
+          id: string
+          name: string
+          target_amount: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          current_amount?: number
+          deadline: string
+          id?: string
+          name: string
+          target_amount: number
+          type: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          current_amount?: number
+          deadline?: string
+          id?: string
+          name?: string
+          target_amount?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_settings: {
+        Row: {
+          channels: string[]
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          threshold: number | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          channels: string[]
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          threshold?: number | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          threshold?: number | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          id: string
+          name: string | null
+          role: string | null
+          status: string | null
+          theme: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string | null
+          id: string
+          name?: string | null
+          role?: string | null
+          status?: string | null
+          theme?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+          status?: string | null
+          theme?: string | null
+        }
+        Relationships: []
+      }
+      savings_boxes: {
+        Row: {
+          created_at: string | null
+          current_amount: number
+          id: string
+          name: string
+          target_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_amount?: number
+          id?: string
+          name: string
+          target_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_amount?: number
+          id?: string
+          name?: string
+          target_amount?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_boxes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      savings_transactions: {
+        Row: {
+          amount: number
+          box_id: string
+          created_at: string | null
+          date: string
+          description: string
+          id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          box_id: string
+          created_at?: string | null
+          date: string
+          description: string
+          id?: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          box_id?: string
+          created_at?: string | null
+          date?: string
+          description?: string
+          id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_transactions_box_id_fkey"
+            columns: ["box_id"]
+            isOneToOne: false
+            referencedRelation: "savings_boxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          date: string
+          description: string
+          frequency: string | null
+          id: string
+          is_recurring: boolean | null
+          tags: string[] | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          date: string
+          description: string
+          frequency?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          tags?: string[] | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          date?: string
+          description?: string
+          frequency?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          tags?: string[] | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
