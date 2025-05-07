@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,7 +67,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           description: item.description,
           tags: item.tags || [],
           isRecurring: item.is_recurring || false,
-          frequency: item.frequency || undefined,
+          // Fix: Convert string to the union type or undefined
+          frequency: (item.frequency as "monthly" | "weekly" | "yearly" | null) || undefined,
         }));
         
         setTransactions(formattedData);
@@ -227,7 +229,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           description: data.description,
           tags: data.tags || [],
           isRecurring: data.is_recurring || false,
-          frequency: data.frequency as 'monthly' | 'weekly' | 'yearly' | undefined,
+          // Fix: Convert string to the union type or undefined
+          frequency: (data.frequency as "monthly" | "weekly" | "yearly" | null) || undefined,
         }]);
       }
       
@@ -373,7 +376,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           description: transaction.description,
           tags: transaction.tags || [],
           is_recurring: transaction.isRecurring || false,
-          frequency: transaction.frequency,
+          frequency: transaction.frequency || null,
         })
         .eq('id', transaction.id);
         
