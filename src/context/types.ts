@@ -73,6 +73,7 @@ export interface FinanceContextType {
   budgets: Budget[];
   goals: Goal[];
   savingsBoxes: SavingsBox[];
+  isLoading: boolean;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   updateTransaction: (transaction: Transaction) => void;
   deleteTransaction: (id: string) => void;

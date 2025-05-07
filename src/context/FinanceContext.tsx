@@ -9,9 +9,11 @@ import {
   Goal, 
   SavingsBox,
   CategoryType,
-  TransactionType
+  TransactionType,
+  ForecastData
 } from './types';
 import { toast } from 'sonner';
+import { generateForecast } from '@/utils/forecastUtils';
 
 // Create the context
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -200,7 +202,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         category: transaction.category,
         description: transaction.description,
         tags: transaction.tags || [],
-        isRecurring: transaction.isRecurring || false,
+        is_recurring: transaction.isRecurring || false,
         frequency: transaction.frequency || null,
       };
 
@@ -225,7 +227,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           description: data.description,
           tags: data.tags || [],
           isRecurring: data.is_recurring || false,
-          frequency: data.frequency || undefined,
+          frequency: data.frequency as 'monthly' | 'weekly' | 'yearly' | undefined,
         }]);
       }
       
@@ -319,6 +321,42 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error('Error adding goal:', error.message);
       toast.error('Falha ao adicionar meta');
+    }
+  };
+
+  // Add a new SavingsBox
+  const addSavingsBox = async (box: Omit<SavingsBox, 'id' | 'transactions'>) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('savings_boxes')
+        .insert({
+          user_id: user.id,
+          name: box.name,
+          target_amount: box.targetAmount,
+          current_amount: box.currentAmount || 0,
+        })
+        .select('*')
+        .single();
+        
+      if (error) throw error;
+      
+      const newBox = {
+        id: data.id,
+        name: data.name,
+        targetAmount: data.target_amount ? Number(data.target_amount) : undefined,
+        currentAmount: Number(data.current_amount),
+        transactions: [],
+      };
+      
+      setSavingsBoxes(prev => [newBox, ...prev]);
+      toast.success('Caixinha criada com sucesso');
+      
+    } catch (error: any) {
+      console.error('Erro ao criar caixinha:', error);
+      toast.error('Erro ao criar caixinha');
+      throw error;
     }
   };
 
@@ -466,38 +504,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   };
 
   // SavingsBox CRUD operations
-  const addSavingsBox = async (box: Omit<SavingsBox, 'id' | 'transactions'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('savings_boxes')
-        .insert({
-          name: box.name,
-          target_amount: box.targetAmount,
-          current_amount: box.currentAmount || 0,
-        })
-        .select('*')
-        .single();
-        
-      if (error) throw error;
-      
-      const newBox = {
-        id: data.id,
-        name: data.name,
-        targetAmount: data.target_amount ? Number(data.target_amount) : undefined,
-        currentAmount: Number(data.current_amount),
-        transactions: [],
-      };
-      
-      setSavingsBoxes(prev => [newBox, ...prev]);
-      toast.success('Caixinha criada com sucesso');
-      
-    } catch (error: any) {
-      console.error('Erro ao criar caixinha:', error);
-      toast.error('Erro ao criar caixinha');
-      throw error;
-    }
-  };
-
   const updateSavingsBox = async (box: SavingsBox) => {
     try {
       const { error } = await supabase
@@ -624,6 +630,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       budgets,
       goals,
       savingsBoxes,
+      isLoading,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -638,8 +645,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       deleteSavingsBox,
       addSavingsTransaction,
       getRecurringTransactions,
-      getForecast,
-      isLoading
+      getForecast
     }}>
       {children}
     </FinanceContext.Provider>
@@ -654,3 +660,5 @@ export const useFinance = () => {
   }
   return context;
 };
+
+export type { Transaction, Budget, Goal, SavingsBox, CategoryType, TransactionType, ForecastData };

@@ -1,59 +1,94 @@
 
 import { addMonths, format, parseISO } from 'date-fns';
-import { Transaction, ForecastData, CategoryType } from '../context/FinanceContext';
-import { ptBR } from 'date-fns/locale';
+import { Transaction, ForecastData, CategoryType } from '../context/types';
 
-// Formata o mês em formato legível (ex: "Maio 2025")
-export const formatMonth = (monthStr: string): string => {
-  const date = parseISO(`${monthStr}-01`);
-  return format(date, 'MMMM yyyy', { locale: ptBR });
-};
+function initializeMonth(date: Date): ForecastData {
+  const categories: Record<CategoryType, number> = {
+    salary: 0,
+    investments: 0,
+    gifts: 0,
+    food: 0,
+    transport: 0,
+    leisure: 0,
+    health: 0,
+    education: 0,
+    housing: 0,
+    utilities: 0,
+    clothing: 0,
+    other: 0
+  };
 
-// Gera os próximos X meses a partir do mês atual
-export const generateFutureMonths = (count: number): string[] => {
-  const months: string[] = [];
-  const currentDate = new Date();
+  return {
+    month: format(date, 'yyyy-MM'),
+    income: 0,
+    expense: 0,
+    balance: 0,
+    categories
+  };
+}
+
+export const generateForecast = (months: number, recurringTransactions: Transaction[]): ForecastData[] => {
+  const forecast: ForecastData[] = [];
+  const startDate = new Date();
   
-  for (let i = 0; i < count; i++) {
-    const futureDate = addMonths(currentDate, i);
-    months.push(format(futureDate, 'yyyy-MM'));
+  // Initialize the forecast for the requested number of months
+  for (let i = 0; i < months; i++) {
+    const monthDate = addMonths(startDate, i);
+    forecast.push(initializeMonth(monthDate));
   }
   
-  return months;
-};
-
-// Calcula a variação percentual entre dois valores
-export const calculatePercentageChange = (current: number, previous: number): number => {
-  if (previous === 0) return current > 0 ? 100 : 0;
-  return Math.round(((current - previous) / Math.abs(previous)) * 100);
-};
-
-// Encontra as principais categorias de despesa em uma previsão
-export const getTopExpenseCategories = (forecast: ForecastData[]): CategoryType[] => {
-  if (forecast.length === 0) return [];
-  
-  // Soma as despesas por categoria em todos os meses
-  const categorySums: Record<CategoryType, number> = {} as Record<CategoryType, number>;
-  
-  forecast.forEach(month => {
-    Object.entries(month.categories).forEach(([category, amount]) => {
-      const cat = category as CategoryType;
-      if (!categorySums[cat]) categorySums[cat] = 0;
-      categorySums[cat] += amount;
+  // Process recurring transactions
+  recurringTransactions.forEach(transaction => {
+    const { type, amount, category, frequency = 'monthly' } = transaction;
+    
+    forecast.forEach((month, index) => {
+      // Apply transaction based on frequency
+      let shouldApply = false;
+      
+      switch (frequency) {
+        case 'monthly':
+          shouldApply = true;
+          break;
+        case 'weekly':
+          // Apply weekly transactions 4 times per month
+          for (let i = 0; i < 4; i++) {
+            applyTransaction(month, type, amount, category);
+          }
+          shouldApply = false; // Already applied
+          break;
+        case 'yearly':
+          // Apply yearly transactions only in the same month as the start date
+          const transactionDate = parseISO(transaction.date);
+          const forecastDate = addMonths(startDate, index);
+          shouldApply = transactionDate.getMonth() === forecastDate.getMonth();
+          break;
+      }
+      
+      if (shouldApply) {
+        applyTransaction(month, type, amount, category);
+      }
     });
   });
   
-  // Ordena as categorias pelo total e retorna as principais
-  return Object.entries(categorySums)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5)
-    .map(([category]) => category as CategoryType);
+  // Calculate balance for each month
+  forecast.forEach((month, index) => {
+    month.balance = month.income - month.expense;
+    
+    // Carry over balance from previous month
+    if (index > 0) {
+      month.balance += forecast[index - 1].balance;
+    }
+  });
+  
+  return forecast;
 };
 
-// Calcula a taxa de poupança prevista (quanto sobrou dividido pela receita)
-export const calculateSavingsRate = (forecast: ForecastData[]): number[] => {
-  return forecast.map(month => {
-    if (month.income === 0) return 0;
-    return Math.round((month.balance / month.income) * 100);
-  });
-};
+function applyTransaction(month: ForecastData, type: TransactionType, amount: number, category: CategoryType) {
+  if (type === 'income') {
+    month.income += amount;
+    month.categories[category] += amount;
+  } else {
+    month.expense += amount;
+    month.categories[category] += amount;
+  }
+}

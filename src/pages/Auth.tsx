@@ -24,7 +24,7 @@ const Auth = () => {
       return;
     }
 
-    // Garantir que o nome tenha no máximo 20 caracteres para evitar erros
+    // Garantir que o nome tenha no máximo 20 caracteres para evitar erros no banco de dados
     const truncatedName = name.substring(0, 20);
 
     try {
@@ -139,7 +139,7 @@ const Auth = () => {
                     placeholder="Seu nome"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    maxLength={20} // Limitando a 20 caracteres
+                    maxLength={20}
                     required
                   />
                   <p className="text-xs text-gray-500">
