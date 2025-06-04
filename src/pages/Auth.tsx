@@ -25,12 +25,15 @@ const Auth = () => {
     }
 
     // Garantir que o nome tenha no máximo 20 caracteres para evitar erros no banco de dados
-    const truncatedName = name.substring(0, 20);
+    const truncatedName = name.trim().substring(0, 20);
 
     try {
       setLoading(true);
+      
+      console.log('Tentando criar conta com nome:', truncatedName);
+      
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: { 
@@ -39,13 +42,34 @@ const Auth = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro detalhado:', error);
+        throw error;
+      }
       
-      toast.success('Conta criada com sucesso! Verifique seu email.');
+      console.log('Conta criada com sucesso:', data);
+      toast.success('Conta criada com sucesso! Verifique seu email se necessário.');
+      
+      // Se o usuário foi criado e confirmado automaticamente, redirecionar
+      if (data.user && data.session) {
+        navigate('/');
+      }
       
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao criar conta');
       console.error('Erro de cadastro:', error);
+      
+      // Mostrar mensagens de erro mais específicas
+      if (error.message.includes('User already registered')) {
+        toast.error('Este email já está cadastrado. Tente fazer login.');
+      } else if (error.message.includes('Database error')) {
+        toast.error('Erro interno do servidor. Tente novamente em alguns minutos.');
+      } else if (error.message.includes('Invalid email')) {
+        toast.error('Email inválido. Verifique o formato do email.');
+      } else if (error.message.includes('Password')) {
+        toast.error('Senha muito fraca. Use pelo menos 6 caracteres.');
+      } else {
+        toast.error(error.message || 'Erro ao criar conta. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,19 +85,34 @@ const Auth = () => {
 
     try {
       setLoading(true);
+      
+      console.log('Tentando fazer login...');
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro de login:', error);
+        throw error;
+      }
       
+      console.log('Login realizado com sucesso:', data);
       toast.success('Login realizado com sucesso!');
       navigate('/');
       
     } catch (error: any) {
-      toast.error(error.message || 'Credenciais inválidas');
       console.error('Erro de login:', error);
+      
+      // Mostrar mensagens de erro mais específicas
+      if (error.message.includes('Invalid login credentials')) {
+        toast.error('Email ou senha incorretos.');
+      } else if (error.message.includes('Email not confirmed')) {
+        toast.error('Email ainda não confirmado. Verifique sua caixa de entrada.');
+      } else {
+        toast.error(error.message || 'Erro ao fazer login. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -166,6 +205,7 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={6}
                   />
                 </div>
               </CardContent>
