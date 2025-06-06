@@ -31,30 +31,10 @@ const CategoryDistribution: React.FC<CategoryDistributionProps> = ({ transaction
     return Array.from(categoryMap.entries()).map(([category, value]) => ({
       name: getCategoryName(category),
       value,
-      color: getCategoryColor(category).replace('bg-', ''),
+      color: getCategoryColor(category),
       category
     }));
   }, [transactions]);
-  
-  // Helper to convert Tailwind color classes to hex colors for the chart
-  const getTailwindColor = (color: string): string => {
-    switch (color) {
-      case 'red-400': return '#F87171';
-      case 'red-500': return '#EF4444';
-      case 'orange-500': return '#F97316';
-      case 'yellow-500': return '#EAB308';
-      case 'green-500': return '#22C55E';
-      case 'blue-400': return '#60A5FA';
-      case 'blue-500': return '#3B82F6';
-      case 'indigo-500': return '#6366F1';
-      case 'purple-400': return '#C084FC';
-      case 'purple-500': return '#A855F7';
-      case 'pink-500': return '#EC4899';
-      case 'gray-400': return '#9CA3AF';
-      case 'gray-500': return '#6B7280';
-      default: return '#6B7280';
-    }
-  };
 
   return (
     <Card>
@@ -77,7 +57,7 @@ const CategoryDistribution: React.FC<CategoryDistributionProps> = ({ transaction
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={getTailwindColor(entry.color)} 
+                    fill={entry.color} 
                   />
                 ))}
               </Pie>
