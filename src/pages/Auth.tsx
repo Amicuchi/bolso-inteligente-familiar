@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +15,12 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Mock users database
+  const mockUsers = [
+    { email: 'demo@exemplo.com', password: '123456', name: 'Usuário Demo' },
+    { email: 'teste@teste.com', password: 'teste123', name: 'Teste' }
+  ];
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -24,52 +29,53 @@ const Auth = () => {
       return;
     }
 
-    // Garantir que o nome tenha no máximo 20 caracteres para evitar erros no banco de dados
+    if (password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
     const truncatedName = name.trim().substring(0, 20);
 
     try {
       setLoading(true);
       
-      console.log('Tentando criar conta com nome:', truncatedName);
+      console.log('Criando conta fictícia com nome:', truncatedName);
       
-      const { data, error } = await supabase.auth.signUp({
+      // Simular delay de rede
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verificar se email já existe
+      const existingUser = mockUsers.find(user => user.email === email.trim());
+      if (existingUser) {
+        throw new Error('Este email já está cadastrado. Tente fazer login.');
+      }
+      
+      // Simular criação de usuário
+      const newUser = {
         email: email.trim(),
         password,
-        options: {
-          data: { 
-            name: truncatedName 
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Erro detalhado:', error);
-        throw error;
-      }
+        name: truncatedName
+      };
       
-      console.log('Conta criada com sucesso:', data);
-      toast.success('Conta criada com sucesso! Verifique seu email se necessário.');
+      // Salvar no localStorage para simular persistência
+      const users = JSON.parse(localStorage.getItem('mockUsers') || '[]');
+      users.push(newUser);
+      localStorage.setItem('mockUsers', JSON.stringify(users));
       
-      // Se o usuário foi criado e confirmado automaticamente, redirecionar
-      if (data.user && data.session) {
-        navigate('/');
-      }
+      // Salvar sessão atual
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: Date.now().toString(),
+        email: newUser.email,
+        name: newUser.name
+      }));
+      
+      console.log('Conta criada com sucesso:', newUser);
+      toast.success('Conta criada com sucesso!');
+      navigate('/');
       
     } catch (error: any) {
       console.error('Erro de cadastro:', error);
-      
-      // Mostrar mensagens de erro mais específicas
-      if (error.message.includes('User already registered')) {
-        toast.error('Este email já está cadastrado. Tente fazer login.');
-      } else if (error.message.includes('Database error')) {
-        toast.error('Erro interno do servidor. Tente novamente em alguns minutos.');
-      } else if (error.message.includes('Invalid email')) {
-        toast.error('Email inválido. Verifique o formato do email.');
-      } else if (error.message.includes('Password')) {
-        toast.error('Senha muito fraca. Use pelo menos 6 caracteres.');
-      } else {
-        toast.error(error.message || 'Erro ao criar conta. Tente novamente.');
-      }
+      toast.error(error.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -86,33 +92,37 @@ const Auth = () => {
     try {
       setLoading(true);
       
-      console.log('Tentando fazer login...');
+      console.log('Tentando fazer login fictício...');
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password
-      });
-
-      if (error) {
-        console.error('Erro de login:', error);
-        throw error;
+      // Simular delay de rede
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Verificar usuários mock padrão + usuários salvos
+      const savedUsers = JSON.parse(localStorage.getItem('mockUsers') || '[]');
+      const allUsers = [...mockUsers, ...savedUsers];
+      
+      const user = allUsers.find(u => 
+        u.email === email.trim() && u.password === password
+      );
+      
+      if (!user) {
+        throw new Error('Email ou senha incorretos.');
       }
       
-      console.log('Login realizado com sucesso:', data);
+      // Salvar sessão atual
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: Date.now().toString(),
+        email: user.email,
+        name: user.name
+      }));
+      
+      console.log('Login realizado com sucesso:', user);
       toast.success('Login realizado com sucesso!');
       navigate('/');
       
     } catch (error: any) {
       console.error('Erro de login:', error);
-      
-      // Mostrar mensagens de erro mais específicas
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Email ou senha incorretos.');
-      } else if (error.message.includes('Email not confirmed')) {
-        toast.error('Email ainda não confirmado. Verifique sua caixa de entrada.');
-      } else {
-        toast.error(error.message || 'Erro ao fazer login. Tente novamente.');
-      }
+      toast.error(error.message || 'Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -126,6 +136,13 @@ const Auth = () => {
           <CardDescription>
             Gerencie suas finanças de forma simples e eficiente
           </CardDescription>
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+            <p className="font-medium text-blue-800 dark:text-blue-200">Demo:</p>
+            <p className="text-blue-600 dark:text-blue-300">
+              Email: demo@exemplo.com<br />
+              Senha: 123456
+            </p>
+          </div>
         </CardHeader>
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
